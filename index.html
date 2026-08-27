@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>无人应答 - 岚安市116便民服务网</title>
+    <style>
+        :root {
+            --bg: #f5f2e8;
+            --border: #999;
+            --link: #0000cc;
+            --text: #333;
+            --header-bg: #d4d0c0;
+            --red: #cc0000;
+            --placeholder-bg: #f0f0f0;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg);
+            font-family:'SimSun','宋体','Courier New',monospace;
+            font-size:13px; color:var(--text); line-height:1.6;
+            min-height:100vh; display:flex; flex-direction:column; align-items:center;
+        }
+        a { color:var(--link); text-decoration:underline; cursor:pointer; }
+        a:hover { color:#ff6600; text-decoration:none; }
+
+        .image-placeholder {
+            background: var(--placeholder-bg);
+            border:2px dashed #999;
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            font-size:11px; color:#666; text-align:center; padding:15px; margin:8px 0;
+            min-height:80px; width:100%; letter-spacing:0.5px;
+        }
+        .image-placeholder .ph-filename { font-weight:bold; font-size:12px; color:#444; font-family:'Courier New',monospace; }
+        .image-placeholder .ph-dim { font-size:10px; color:#888; margin-top:3px; }
+        .image-placeholder .ph-desc { font-size:10px; color:#999; margin-top:3px; font-style:italic; }
+
+        .zhangpeng-photo-container {
+            width:140px; height:185px; margin:10px auto; position:relative; overflow:hidden;
+            border:1px solid #999; background:#e0dcd0; display:flex; align-items:center; justify-content:center;
+            font-size:10px; color:#777; text-align:center;
+        }
+        .zhangpeng-photo-container img { width:100%; height:100%; object-fit:cover; }
+
+        #app-container {
+            width:840px; background:#fff; border:2px solid var(--border); border-top:none;
+            margin:0 auto; min-height:100vh; box-shadow:2px 2px 12px rgba(0,0,0,0.15);
+            display:flex; flex-direction:column;
+        }
+        #game-header {
+            background:var(--header-bg); border-bottom:2px solid var(--border); padding:8px 15px;
+            display:none; align-items:center; gap:12px; flex-wrap:wrap; font-size:11px;
+        }
+        #game-header .header-link { color:var(--link); cursor:pointer; text-decoration:underline; }
+        #game-header .header-link:hover { color:#ff6600; }
+        #game-header .header-sep { color:#999; }
+        #game-header .header-status { color:#666; margin-left:auto; font-size:10px; }
+
+        #game-body { display:none; flex:1; min-height:100vh; }
+        #game-body.active { display:flex; }
+
+        #phone-sidebar {
+            width:170px; background:#e8e4d8; border-right:2px solid var(--border); padding:15px 10px;
+            display:flex; flex-direction:column; align-items:center; gap:10px; flex-shrink:0; min-height:100vh;
+        }
+        #phone-sidebar .phone-icon { font-size:36px; }
+        #phone-sidebar .phone-title { font-weight:bold; font-size:12px; text-align:center; color:#333; border-bottom:1px solid var(--border); padding-bottom:6px; width:100%; }
+        #phone-sidebar .phone-number-display { font-size:20px; font-weight:bold; color:#cc0000; letter-spacing:3px; background:#fff; border:2px solid #999; padding:4px 8px; width:100%; font-family:'Courier New',monospace; text-align:center; }
+        #phone-sidebar .call-btn { background:#cc0000; color:#fff; border:2px outset #999; padding:7px 14px; font-size:13px; font-weight:bold; cursor:pointer; font-family:inherit; letter-spacing:2px; width:100%; }
+        #phone-sidebar .call-btn:active { border-style:inset; background:#990000; }
+        #phone-sidebar .call-btn:disabled { background:#999; cursor:not-allowed; }
+        #phone-sidebar .call-feedback { font-size:10px; color:#555; text-align:center; min-height:50px; width:100%; background:#fff; border:1px solid #ccc; padding:6px; word-break:break-all; font-family:'Courier New',monospace; line-height:1.5; }
+        #phone-sidebar .sidebar-footer { font-size:9px; color:#999; text-align:center; margin-top:auto; }
+
+        #content-area { flex:1; padding:15px 18px; display:flex; flex-direction:column; gap:10px; }
+        #banner-img {
+            width:100%;
+            border:2px solid var(--border);
+            position:relative;
+            background: var(--header-bg);
+            min-height:60px;
+        }
+        #banner-img img { width:100%; display:block; }
+        #banner-img .banner-title-overlay {
+            position:absolute; bottom:8px; left:10px;
+            background:rgba(212,208,192,0.88); padding:4px 14px; border:1px solid #999;
+        }
+        #banner-img .banner-title-overlay .site-title { font-size:16px; font-weight:bold; color:#333; letter-spacing:2px; font-family:'SimHei','黑体',sans-serif; }
+        #banner-img .banner-title-overlay .site-subtitle { font-size:9px; color:#555; display:block; }
+
+        .search-bar { display:flex; gap:6px; align-items:center; border:1px solid var(--border); padding:6px 8px; background:#faf8f2; flex-wrap:wrap; }
+        .search-bar label { font-size:12px; color:#555; }
+        .search-bar input[type="text"] { flex:1; padding:4px 8px; font-size:12px; border:1px solid #aaa; font-family:'Courier New',monospace; background:#fff; min-width:100px; }
+        .search-bar button { padding:4px 12px; font-size:12px; background:#e0dcd0; border:1px solid #999; cursor:pointer; font-family:inherit; }
+
+        .content-card { border:1px solid var(--border); padding:14px; background:#fff; flex:1; }
+        .content-card h2 { font-size:15px; color:#333; border-bottom:2px solid #999; padding-bottom:5px; margin-bottom:10px; font-family:'SimHei','黑体',sans-serif; }
+        .content-card h3 { font-size:13px; color:#444; margin:10px 0 5px; }
+        .content-card p { font-size:12px; line-height:1.7; margin:5px 0; }
+
+        .data-table { width:100%; border-collapse:collapse; font-size:11px; margin:8px 0; }
+        .data-table th,.data-table td { border:1px solid #999; padding:4px 6px; text-align:left; }
+        .data-table th { background:#e0dcd0; font-weight:bold; }
+        .highlight-row td { background:#ffffcc !important; font-weight:bold; }
+        .danger-row td { background:#ffe0e0 !important; }
+
+        .document-box { background:#fefef5; border:1px solid #ccc; padding:10px; font-size:11px; line-height:1.8; white-space:pre-wrap; word-break:break-all; font-family:'Courier New','SimSun',monospace; max-height:350px; overflow-y:auto; margin:6px 0; }
+
+        .message-detail-box { border:1px solid #999; background:#fefefe; margin:8px 0; font-size:12px; }
+        .message-detail-box .md-header { background:#e8e4d8; border-bottom:1px solid #999; padding:6px 10px; font-weight:bold; }
+        .message-detail-box .md-body { padding:12px 15px; }
+        .message-detail-box .md-row { display:flex; padding:3px 0; font-size:11px; gap:8px; }
+        .message-detail-box .md-label { font-weight:bold; color:#555; min-width:70px; }
+        .message-detail-box .md-divider { border-top:1px dashed #ccc; margin:10px 0; }
+        .message-detail-box .md-content { background:#faf8f2; border:1px solid #ddd; padding:12px 15px; font-size:12px; line-height:2; white-space:pre-wrap; }
+        .message-detail-box .md-system-note { font-size:10px; color:#888; border-top:1px dashed #ccc; padding-top:8px; margin-top:8px; font-style:italic; }
+        .message-detail-box .md-footer { padding:8px 10px; text-align:center; border-top:1px solid #ddd; background:#f5f2e8; }
+
+        #blackout-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; display:none; justify-content:center; align-items:center; flex-direction:column; gap:20px; }
+        #blackout-overlay.active { display:flex; }
+        #blackout-overlay .warning-text { color:#ff0000; font-size:38px; font-weight:bold; letter-spacing:6px; font-family:'SimHei','黑体',sans-serif; text-shadow:0 0 20px #ff0000; animation:warningPulse 0.5s infinite; }
+        @keyframes warningPulse { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+        #blackout-overlay .sub-text { color:#555; font-size:13px; letter-spacing:3px; }
+
+        #wayback-view { display:block; background:#fff; padding:25px 30px; min-height:100vh; }
+        .wm-header { display:flex; align-items:center; gap:15px; border-bottom:3px solid #333; padding-bottom:12px; margin-bottom:18px; }
+        .wm-logo { font-size:24px; font-weight:bold; color:#1a3c6e; font-family:'Arial Black','SimHei',sans-serif; }
+        .wm-logo span { color:#cc6600; }
+        .wm-tagline { font-size:10px; color:#666; }
+        .wm-url-bar { display:flex; gap:8px; align-items:center; background:#f0eee6; border:1px solid #bbb; padding:10px 12px; margin-bottom:15px; }
+        .wm-url-bar input { flex:1; padding:5px 8px; font-size:12px; border:1px solid #999; font-family:'Courier New',monospace; }
+        .wm-url-bar button { padding:5px 14px; background:#1a3c6e; color:#fff; border:2px outset #1a3c6e; cursor:pointer; }
+        .wm-snapshot-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border:1px solid #ccc; background:#faf8f2; margin-bottom:5px; cursor:pointer; font-size:12px; }
+        .wm-snapshot-item.selected { background:#e8f0f8; border-color:#1a3c6e; font-weight:bold; }
+        .wm-snapshot-item .snapshot-badge { font-size:9px; background:#cc6600; color:#fff; padding:2px 6px; margin-left:auto; }
+        .wm-enter-btn { display:block; width:100%; padding:10px; font-size:14px; font-weight:bold; letter-spacing:2px; background:#1a3c6e; color:#fff; border:2px outset #1a3c6e; cursor:pointer; }
+        .wm-enter-btn:disabled { background:#999; cursor:not-allowed; }
+
+        .cell-wall { background:#1a1a1a; color:#ccc; padding:18px; font-family:'Courier New',monospace; font-size:11px; line-height:2; white-space:pre-wrap; min-height:250px; border:2px solid #333; }
+        .cell-wall .engraving { color:#aaa; font-style:italic; }
+        .cell-status { color:#666; font-size:10px; margin-top:8px; text-align:center; }
+
+        /* 监控画面样式 */
+        .monitor-frame {
+            border: 4px solid #111;
+            background: #000;
+            padding: 8px;
+            margin: 12px 0;
+            display: inline-block;
+            box-shadow: 0 0 15px rgba(0,0,0,0.6);
+        }
+        .monitor-frame img {
+            width: 100%;
+            display: block;
+            filter: grayscale(1) brightness(0.7) contrast(1.2);
+        }
+        .monitor-caption {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #111;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            padding: 5px 8px;
+            letter-spacing: 1px;
+        }
+        .monitor-caption .rec-dot {
+            color: #f00;
+            animation: blink 1s infinite;
+            font-weight: bold;
+        }
+        @keyframes blink {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.2;
+            }
+        }
+        .monitor-timestamp {
+            color: #aaa;
+        }
+
+        .hidden { display:none !important; }
+        .footer { text-align:center; font-size:9px; color:#999; border-top:1px solid #ddd; padding-top:6px; margin-top:auto; }
+
+        @media (max-width:860px) {
+            #app-container { width:100%; border:none; box-shadow:none; }
+            #game-body.active { flex-direction:column; }
+            #phone-sidebar { width:100%; min-height:auto; flex-direction:row; flex-wrap:wrap; gap:6px; padding:8px 12px; border-right:none; border-bottom:2px solid var(--border); }
+            #phone-sidebar .phone-number-display { width:auto; font-size:16px; }
+            #phone-sidebar .call-btn { width:auto; padding:5px 12px; }
+            #phone-sidebar .call-feedback { min-height:30px; width:100%; }
+            #content-area { padding:10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="blackout-overlay">
+        <div class="warning-text">你不该来这里！！！</div>
+        <div class="sub-text">—— 系统已记录你的访问 ——</div>
+    </div>
+
+    <div id="app-container">
+        <div id="game-header">
+            <span class="header-link" onclick="goToView('home')">首页</span>
+            <span class="header-sep">|</span>
+            <span class="header-link" onclick="goToView('schedule')">值班表</span>
+            <span class="header-sep">|</span>
+            <span class="header-link" onclick="goToView('messages')">留言板</span>
+            <span class="header-sep">|</span>
+            <span class="header-link" onclick="goToView('login')">后台登录</span>
+            <span class="header-sep">|</span>
+            <span class="header-link" onclick="goToView('admin')">后台管理</span>
+            <span class="header-status" id="header-status">2009年3月8日 | 岚安市116便民服务网</span>
+        </div>
+
+        <div id="wayback-view">
+            <div class="wm-header">
+                <div class="wm-logo">WEB<span>TIME</span>MACHINE</div>
+                <div class="wm-tagline">—— 网站时光机 ——<br><span style="font-size:9px;">浏览历史网页快照 | 2009年12月31日后原网站已失效</span></div>
+            </div>
+            <div class="wm-url-bar">
+                <label>🔍 URL:</label>
+                <input type="text" value="http://www.116help.cn" readonly>
+                <button onclick="alert('正在查询 http://www.116help.cn 的历史快照...')">查 询</button>
+            </div>
+            <div class="wm-snapshots">
+                <div class="wm-snapshot-item selected" onclick="selectWaybackSnapshot(this,'2009-03-08')">
+                    <span>📅 2009年3月8日</span>
+                    <span style="color:#666;">23:59:59</span>
+                    <span style="flex:1;">岚安市116便民服务网 — 完整页面快照</span>
+                    <span class="snapshot-badge">可访问</span>
+                </div>
+                <div class="wm-snapshot-item" onclick="selectWaybackSnapshot(this,'2009-12-31')">
+                    <span>📅 2009年12月31日</span>
+                    <span style="color:#666;">23:15:00</span>
+                    <span style="flex:1;">服务器迁移后 — 网站已失效</span>
+                    <span class="snapshot-badge" style="background:#999;">不可访问</span>
+                </div>
+                <div class="wm-snapshot-item" onclick="selectWaybackSnapshot(this,'2008-06-01')">
+                    <span>📅 2008年6月1日</span>
+                    <span style="color:#666;">12:00:00</span>
+                    <span style="flex:1;">岚安市116便民服务网 — 历史快照</span>
+                    <span class="snapshot-badge">可访问</span>
+                </div>
+            </div>
+            <button class="wm-enter-btn" id="wm-enter-btn" onclick="enterGame()">进 入 2009 年 3 月 8 日 快 照</button>
+            <div class="footer" style="margin-top:15px;">WebTimeMachine v1.2 &copy; 2026</div>
+        </div>
+
+        <div id="game-body">
+            <div id="phone-sidebar">
+                <div class="phone-icon">📞</div>
+                <div class="phone-title">立即拨打<br>116便民热线</div>
+                <div class="phone-number-display">☎ 116</div>
+                <button class="call-btn" id="call-btn" onclick="dial116()">拨 打</button>
+                <div class="call-feedback" id="call-feedback">— 等待拨打 —</div>
+                <div class="sidebar-footer">热线时间：每日 08:00-22:00<br>岚安市便民服务中心</div>
+            </div>
+            <div id="content-area">
+                <div id="dynamic-content"></div>
+                <div class="footer">© 2003-2009 岚安市便民服务中心 | 您是第 <span id="visit-counter">000047</span> 位访客</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            currentView: 'wayback',
+            callCount: 0,
+            callCooldown: false,
+            loginAttempts: 0,
+            isLoggedIn: false,
+            hasUnlockedServerRoom: false,
+            blackoutActive: false,
+            selectedSnapshot: '2009-03-08',
+            zhangpengPhotoLevel: 0,
+            visitCounter: 47,
+            bannerURL: 'images/banner.png',
+            zhangpengPhotos: {
+                0: 'images/zhangpeng_normal.png',
+                1: 'images/zhangpeng_1.png',
+                3: 'images/zhangpeng_3.png',
+                4: 'images/zhangpeng_4.png',
+                6: 'images/zhangpeng_6.png',
+                7: 'images/zhangpeng_7.png',
+            },
+        };
+
+        const photoTriggerMap = {
+            '杀人': 1,
+            '关押': 3,
+            '囚禁': 4,
+            '尸体': 6,
+            '你是谁': 7,
+        };
+
+        const callFeedbacks = [
+            '无人应答。',
+            '无人应答。请稍后再拨。',
+            '无人应答。您已拨打3次，排队人数：47',
+            '正在转接……失败。',
+            '您已进入排队序列第47位。预计等待时间：……',
+            '（沉默8秒后挂断）\n提示：如急需帮助，请访问留言板。',
+            '（沉默）\n男声："张鹏，有人找你。"\n显示：2009年3月8日 23:47',
+        ];
+        const extraCallFeedbacks = [
+            '无人应答。', '无人应答。', '线路异常……提取片段：4820',
+        ];
+
+        function goToView(view) {
+            const wayback = document.getElementById('wayback-view');
+            const gameBody = document.getElementById('game-body');
+            const header = document.getElementById('game-header');
+            if (view === 'wayback') {
+                wayback.classList.remove('hidden');
+                gameBody.classList.remove('active');
+                header.style.display = 'none';
+                return;
+            }
+            wayback.classList.add('hidden');
+            gameBody.classList.add('active');
+            header.style.display = 'flex';
+            state.currentView = view;
+            renderView(view);
+        }
+        function enterGame() {
+            if (state.selectedSnapshot !== '2009-03-08') { alert('请选择2009年3月8日的快照。'); return; }
+            goToView('home');
+        }
+        function selectWaybackSnapshot(el, date) {
+            document.querySelectorAll('.wm-snapshot-item').forEach(i => i.classList.remove('selected'));
+            if (el) el.classList.add('selected');
+            state.selectedSnapshot = date;
+            const btn = document.getElementById('wm-enter-btn');
+            if (date === '2009-03-08') { btn.disabled = false; btn.textContent = '进 入 2009 年 3 月 8 日 快 照'; } else { btn
+                    .disabled = true;
+                btn.textContent = '此快照不可访问'; }
+        }
+        function getHeaderStatus(view) {
+            switch (view) {
+                case 'home':
+                    return '2009年3月8日 | 岚安市116便民服务网';
+                case 'schedule':
+                    return '值班表页面 | 2009年3月';
+                case 'messages':
+                    return '留言板 | 第1-60条留言';
+                case 'login':
+                    return '后台登录 | 需要账号和验证码';
+                case 'admin':
+                    return '后台管理 | 声渊生物科技';
+                case 'room':
+                    return '机房管理 | 地下2层';
+                case 'cell':
+                    return '隔音间 | 限制区域';
+                case 'monitor':
+                    return '监控画面 | 存档记录';
+                default:
+                    return '岚安市116便民服务网';
+            }
+        }
+        function renderView(view) {
+            const content = document.getElementById('dynamic-content');
+            document.getElementById('header-status').textContent = getHeaderStatus(view);
+            switch (view) {
+                case 'home':
+                    renderHome(content);
+                    break;
+                case 'schedule':
+                    renderSchedule(content);
+                    break;
+                case 'messages':
+                    renderMessages(content);
+                    break;
+                case 'login':
+                    renderLogin(content);
+                    break;
+                case 'admin':
+                    renderAdmin(content);
+                    break;
+                case 'room':
+                    renderRoom(content);
+                    break;
+                case 'cell':
+                    renderCell(content);
+                    break;
+                case 'monitor':
+                    renderMonitor(content);
+                    break;
+                case 'status':
+                    renderStatusFile(content);
+                    break;
+                default:
+                    renderHome(content);
+            }
+        }
+        function placeholderHTML(filename, dims, desc) {
+            return `<div class="image-placeholder"><div class="ph-filename">📁 ${filename}</div><div class="ph-dim">${dims}</div><div class="ph-desc">${desc}</div><div style="font-size:9px;color:#bbb;margin-top:5px;">[图片占位 — 等待素材]</div></div>`;
+        }
+        function zhangpengPhotoHTML(level) {
+            const lvl = level !== undefined ? level : state.zhangpengPhotoLevel;
+            const url = state.zhangpengPhotos[lvl];
+            if (url) {
+                return `<div class="zhangpeng-photo-container"><img src="${url}" alt="张鹏证件照"></div>`;
+            }
+            return `<div class="zhangpeng-photo-container"><span style="font-size:10px;color:#999;">[张鹏照片<br>等级${lvl}未提供]</span></div>`;
+        }
+
+        function renderHome(content) {
+            content.innerHTML = `
+                <div id="banner-img">
+                    <img src="${state.bannerURL}" alt="岚安市便民服务中心横幅">
+                    <div class="banner-title-overlay"><span class="site-title">岚安市116便民服务网</span><span class="site-subtitle">—— 您的声音，我们的责任 ——</span></div>
+                </div>
+                <div class="content-card">
+                    <h2>欢迎访问岚安市116便民服务网</h2>
+                    <div style="border:1px solid #ddd;padding:8px;margin:8px 0;background:#faf8f2;">
+                        <strong>📢 公告栏</strong><br>
+                        <span style="font-size:11px;">公告1：本中心自2003年成立以来，已服务超过100万人次。</span><br>
+                        <span style="font-size:11px;">公告2：近期系统升级，可能出现占线情况。</span><br>
+                        <span style="font-size:11px;color:#555;cursor:pointer;" onclick="toggleNotice(this)">公告3（点击展开）：如遇占线请稍后重试，本中心承诺每一通来电必有回应。</span>
+                        <div class="notice-expand" style="display:none;font-size:10px;color:#888;margin-top:4px;">公告3完整内容：如遇占线请稍后重试，本中心承诺每一通来电必有回应。<br><span style="font-size:9px;">留言板编号规则：按来电顺序自动生成。</span></div>
+                    </div>
+                    <div class="search-bar" style="margin-top:8px;"><label>🔍 站内搜索：</label><input type="text" id="home-search-input" placeholder="输入关键词..." onkeydown="if(event.key==='Enter')doSearch('home')"><button onclick="doSearch('home')">搜索</button></div>
+                    <div style="font-size:10px;color:#aaa;margin-top:8px;">本站由岚安市便民服务中心维护 | 最后更新：2009年3月8日</div>
+                </div>
+            `;
+        }
+        function toggleNotice(el) {
+            const next = el.nextElementSibling;
+            if (next && next.classList.contains('notice-expand')) next.style.display = next.style.display === 'none' ? 'block' :
+                'none';
+        }
+        function renderSchedule(content) {
+            content.innerHTML = `
+                <div class="content-card">
+                    <h2>2009年3月值班表</h2>
+                    <p style="font-size:11px;color:#666;">岚安市便民服务中心 | 116热线接线员排班</p>
+                    <table class="data-table">
+                        <thead><tr><th>日期</th><th>星期</th><th>早班(08:00-16:00)</th><th>晚班(16:00-24:00)</th><th>备注</th></tr></thead>
+                        <tbody>
+                            <tr><td>3月1日</td><td>日</td><td>李明</td><td>王芳</td><td></td></tr>
+                            <tr><td>3月2日</td><td>一</td><td>张鹏</td><td>李明</td><td></td></tr>
+                            <tr><td>3月3日</td><td>二</td><td>王芳</td><td>张鹏</td><td></td></tr>
+                            <tr><td>3月4日</td><td>三</td><td>李明</td><td>王芳</td><td></td></tr>
+                            <tr><td>3月5日</td><td>四</td><td>张鹏</td><td>李明</td><td></td></tr>
+                            <tr><td>3月6日</td><td>五</td><td>王芳</td><td>张鹏</td><td></td></tr>
+                            <tr><td>3月7日</td><td>六</td><td>李明</td><td>王芳</td><td></td></tr>
+                            <tr class="highlight-row"><td>3月8日</td><td>日</td><td>张鹏</td><td>张鹏</td><td>晚班异常</td></tr>
+                            <tr class="danger-row"><td>3月9日</td><td>一</td><td>张鹏(未打卡)</td><td>待定</td><td>早班缺勤</td></tr>
+                            <tr><td>3月10日</td><td>二</td><td>待定</td><td>待定</td><td></td></tr>
+                            <tr><td>3月11日</td><td>三</td><td>待定</td><td>待定</td><td></td></tr>
+                        </tbody>
+                    </table>
+                    <p style="font-size:10px;color:#888;">* 鼠标悬停"张鹏"可显示工号：11607</p>
+                    <div class="search-bar" style="margin-top:8px;"><label>🔍 搜索工号/日期：</label><input type="text" id="schedule-search-input" placeholder="输入工号或日期..." onkeydown="if(event.key==='Enter')doSearch('schedule')"><button onclick="doSearch('schedule')">搜索</button></div>
+                </div>
+            `;
+        }
+        function renderMessages(content) {
+            const msgs = [
+                { id: 1, date: '2003-02-10', author: '匿名', content: '116热线很方便，谢谢接线员。' },
+                { id: 7, date: '2005-08-30', author: '王先生', content: '社区报修的事情处理得很快。' },
+                { id: 15, date: '2006-11-05', author: '陈先生', content: '热线打不通，希望能增加线路。' },
+                { id: 20, date: '2007-06-18', author: '匿名', content: '接线员的声音很亲切。' },
+                { id: 23, date: '2007-05-12', author: '匿名', content: '接线员张鹏的声音很好听。' },
+                { id: 30, date: '2008-05-01', author: '匿名', content: '劳动节快乐。' },
+                { id: 35, date: '2008-09-15', author: '匿名', content: '打了116，接线员声音有点疲惫。' },
+                { id: 39, date: '2008-12-20', author: '匿名', content: '张鹏接线员，谢谢你帮了我。' },
+                { id: 40, date: '2009-01-01', author: '匿名', content: '新年快乐。希望116越来越好。' },
+                { id: 44, date: '2009-03-01', author: '匿名', content: '感觉最近接线员状态不太对。' },
+                { id: 45, date: '2009-03-07', author: '匿名', content: '昨天打116，接线员一直在重复我说的话。' },
+                { id: 46, date: '2009-03-08', author: '匿名', content: '今天116没人接。怎么回事？' },
+                { id: 47, date: '2009-03-08', author: '匿名', content: '张鹏，你还在吗？你答应过会回我电话的。', time: '23:50' },
+                { id: 48, date: '2009-03-09', author: '匿名', content: '116今天彻底打不通了。' },
+            ];
+            let msgList = '';
+            msgs.forEach(m => { msgList +=
+                    `<div style="border-bottom:1px solid #eee;padding:4px 0;font-size:11px;">#${m.id} | ${m.date} | ${m.author}${m.time?' | '+m.time:''}<br>${m.content}</div>`;
+                });
+            content.innerHTML = `
+                <div class="content-card">
+                    <h2>来电者留言板</h2>
+                    <p style="font-size:11px;color:#666;">欢迎留言。您的每一条留言都会被认真阅读。</p>
+                    <div style="max-height:280px;overflow-y:auto;border:1px solid #ddd;padding:6px;background:#fefefe;margin:8px 0;">${msgList}</div>
+                    <div class="search-bar"><label>🔍 搜索留言：</label><input type="text" id="message-search-input" placeholder="输入关键词..." onkeydown="if(event.key==='Enter')doSearch('messages')"><button onclick="doSearch('messages')">搜索</button></div>
+                    <p style="font-size:10px;color:#999;margin-top:5px;">* 试试搜索"47"或"张鹏"</p>
+                </div>
+            `;
+        }
+        function renderLogin(content) {
+            content.innerHTML = `
+                <div class="content-card">
+                    <h2>后台登录</h2>
+                    <p style="font-size:11px;color:#666;">系统维护通知：2009年3月8日23:30起后台维护</p>
+                    <p style="font-size:11px;margin-top:8px;">请输入管理员账号及验证码。</p>
+                    <p style="font-size:10px;color:#999;">验证码请通过拨打热线获取。</p>
+                    <div style="margin-top:10px;">
+                        <label style="font-size:12px;">账号：</label>
+                        <input type="text" id="login-account" placeholder="请输入账号" style="padding:4px 8px;border:1px solid #999;font-family:'Courier New',monospace;"><br><br>
+                        <label style="font-size:12px;">验证码：</label>
+                        <input type="text" id="login-code" placeholder="请输入验证码" style="padding:4px 8px;border:1px solid #999;font-family:'Courier New',monospace;"><br><br>
+                        <button onclick="attemptLogin()" style="padding:5px 18px;background:#1a3c6e;color:#fff;border:2px outset #1a3c6e;cursor:pointer;font-family:inherit;">登 录</button>
+                        <div id="login-result" style="margin-top:8px;font-size:11px;color:#cc0000;"></div>
+                    </div>
+                </div>
+            `;
+        }
+        function attemptLogin() {
+            const account = document.getElementById('login-account')?.value.trim();
+            const code = document.getElementById('login-code')?.value.trim();
+            const result = document.getElementById('login-result');
+            if (!result) return;
+            if (account === '11607' && code === '4820') {
+                state.isLoggedIn = true;
+                result.style.color = '#008800';
+                result.textContent = '✓ 登录成功。正在进入后台...';
+                setTimeout(() => goToView('admin'), 800);
+            } else {
+                state.loginAttempts++;
+                result.textContent = `✗ 账号或验证码错误。已尝试${state.loginAttempts}次。`;
+                if (state.loginAttempts >= 3) result.textContent += ' 如需帮助请拨打116获取验证码。';
+            }
+        }
+        function renderAdmin(content) {
+            if (!state.isLoggedIn) {
+                content.innerHTML =
+                    `<div class="content-card"><h2>后台管理</h2><p>请先登录。</p><button onclick="goToView('login')" style="padding:4px 12px;cursor:pointer;">前往登录</button></div>`;
+                return;
+            }
+            content.innerHTML = `
+                <div class="content-card">
+                    <h2>后台管理系统</h2>
+                    <p style="font-size:11px;color:#666;">声渊生物科技 · 内部文档查询</p>
+                    <div style="border:1px solid #cc0000;padding:6px 10px;background:#fff5f5;font-size:11px;color:#cc0000;margin:8px 0;">⚠ 警告：此区域仅限授权人员访问。</div>
+                    <h3>📋 系统状态</h3>
+                    <table class="data-table">
+                        <thead><tr><th>工号</th><th>姓名</th><th>状态</th><th>最后在线</th></tr></thead>
+                        <tbody>
+                            <tr><td>116-01</td><td>李明</td><td>在线</td><td>2009-03-08 23:58</td></tr>
+                            <tr><td>116-03</td><td>王芳</td><td>在线</td><td>2009-03-08 23:59</td></tr>
+                            <tr class="danger-row"><td>116-07</td><td>张鹏</td><td style="color:#cc0000;">已离线</td><td>2009年3月8日 23:57</td></tr>
+                            <tr><td>116-12</td><td>李某某</td><td>已离职</td><td>2008-06-30</td></tr>
+                        </tbody>
+                    </table>
+                    <h3>📁 日志文件</h3>
+                    <div style="cursor:pointer;color:var(--link);text-decoration:underline;" onclick="showLogFile()">20090308_张鹏_值班记录.txt</div>
+                    <div style="cursor:pointer;color:var(--link);text-decoration:underline;" onclick="showOtherOperators()">其他接线员状态记录</div>
+                    <h3>🔒 机房管理</h3>
+                    <p style="font-size:11px;">需二级授权码。授权码规则请搜索"授权"。</p>
+                    <input type="text" id="auth-code-input" placeholder="输入7位二级授权码" maxlength="7" style="padding:4px 8px;border:1px solid #999;font-family:'Courier New',monospace;width:180px;">
+                    <button onclick="verifyAuthCode()" style="padding:4px 12px;cursor:pointer;">验证</button>
+                    <div id="auth-result" style="font-size:11px;color:#cc0000;margin-top:5px;"></div>
+                    <div class="search-bar" style="margin-top:10px;"><label>🔍 文档搜索：</label><input type="text" id="admin-search-input" placeholder="输入关键词..." onkeydown="if(event.key==='Enter')doSearch('admin')"><button onclick="doSearch('admin')">搜索</button></div>
+                    <div style="margin-top:12px;border-top:1px solid #ccc;padding-top:10px;">
+                        <h3>📸 张鹏（116-07）</h3>
+                        <p style="font-size:10px;color:#888;">* 搜索特定词汇会触发照片变化</p>
+                        ${zhangpengPhotoHTML(state.zhangpengPhotoLevel)}
+                    </div>
+                </div>
+            `;
+        }
+        function verifyAuthCode() {
+            const input = document.getElementById('auth-code-input');
+            const result = document.getElementById('auth-result');
+            if (!input || !result) return;
+            if (input.value.trim() === '0010780') {
+                state.hasUnlockedServerRoom = true;
+                result.style.color = '#008800';
+                result.textContent = '✓ 授权成功。';
+                setTimeout(() => goToView('room'), 600);
+            } else {
+                result.textContent = '✗ 授权码错误。';
+                input.value = '';
+            }
+        }
+        function showLogFile() {
+            const content = document.getElementById('dynamic-content');
+            content.innerHTML = `
+                <div class="content-card">
+                    <h2>20090308_张鹏_值班记录.txt</h2>
+                    ${placeholderHTML('log_handwritten.jpg', '800×1000', '值班记录手写体扫描')}
+                    <div class="document-box">值班记录
+日期：2009年3月8日
+值班人：张鹏（工号11607）
+
+22:40 接听来电 #20090308-047
+      来电者反复问"你还在吗？"
+23:47 发了邮件给小默，只有网址。
+23:50 留言板第47条留言："张鹏，你还在吗？"
+
+频率基准值记录：80Hz</div>
+                    <div style="margin-top:8px;"><span class="header-link" onclick="goToView('admin')">&larr; 返回后台</span></div>
+                </div>
+            `;
+        }
+        function showOtherOperators() {
+            const content = document.getElementById('dynamic-content');
+            content.innerHTML = `
+                <div class="content-card">
+                    <h2>其他接线员状态记录（内部）</h2>
+                    <div class="document-box">2003年至2009年，116网站共有14名接线员轮转。
+除张鹏（116-07）外，其余13人的平均在岗时间为14个月。
+张鹏是唯一一个声音被大量提取后又被废弃的个例。
+不是因为他特别，而是因为他待得最久（72个月）。</div>
+                    <div style="margin-top:8px;"><span class="header-link" onclick="goToView('admin')">&larr; 返回后台</span></div>
+                </div>
+            `;
+        }
+        function renderRoom(content) {
+            content.innerHTML = `
+                <div class="content-card">
+                    <h2>机房平面图</h2>
+                    ${placeholderHTML('floorplan_room.jpg', '800×600', '机房平面图，标注隔音间')}
+                    <button onclick="confirmEnterCell()" style="margin-top:10px;padding:6px 16px;background:#cc0000;color:#fff;border:2px outset #999;cursor:pointer;">进入隔音间</button>
+                    <div id="cell-confirm" style="margin-top:8px;"></div>
+                </div>
+            `;
+        }
+        function confirmEnterCell() {
+            const div = document.getElementById('cell-confirm');
+            if (!div) return;
+            div.innerHTML =
+                '确认进入？<button onclick="goToView(\'cell\')">Y</button> <button onclick="this.parentElement.innerHTML=\'\'">N</button>';
+        }
+        function renderCell(content) {
+            content.innerHTML = `
+                <div class="content-card" style="background:#1a1a1a;border-color:#333;">
+                    <h2 style="color:#ccc;">隔音间 — 墙上刻字</h2>
+                    ${placeholderHTML('wall_engraving.jpg', '800×600', '隔音间刻字照片')}
+                    <div class="cell-wall"><span class="engraving">2009年3月9日
+我听到自己的声音从线上传回来
+它在说"您好，116便民服务中心"
+那不是我在说。
+
+2014年春
+小默
+你找到我了。
+别找我。我说的每一句话都是别人。</span></div>
+                    <div class="cell-status">当前系统状态：已关机</div>
+                    <div style="text-align:center;margin-top:10px;"><button onclick="goToView('monitor')" style="padding:6px 20px;background:#333;color:#ccc;border:1px solid #555;cursor:pointer;">查看监控画面</button></div>
+                </div>
+            `;
+        }
+
+        // 新增：结局监控画面
+        function renderMonitor(content) {
+            content.innerHTML = `
+                <div class="content-card" style="background:#0a0a0a;border-color:#333;text-align:center;">
+                    <h2 style="color:#ccc;border-bottom-color:#444;">监控画面 — 隔音间存档记录</h2>
+                    <p style="font-size:10px;color:#666;">文件编号：116-07-MONITOR | 最后保存：2014年3月17日 22:13:08</p>
+                    ${placeholderHTML('cell_monitor.jpg', '800×600', '隔音间监控画面（闭路电视截图）')}
+                    <div class="monitor-frame">
+                        <img src="images/cell_monitor.jpg" alt="隔音间监控画面" onerror="this.style.display='none';this.parentElement.innerHTML='<div class=\\'image-placeholder\\'><div class=\\'ph-filename\\'>📁 cell_monitor.jpg</div><div class=\\'ph-dim\\'>800×600</div><div class=\\'ph-desc\\'>隔音间监控画面（闭路电视截图）</div></div>';">
+                        <div class="monitor-caption">
+                            <span class="rec-dot">● REC</span>
+                            <span>CH-07 隔音间</span>
+                            <span class="monitor-timestamp">2014-03-17 22:13:08</span>
+                        </div>
+                    </div>
+                    <p style="font-size:11px;color:#888;margin-top:10px;">画面中空无一人。</p>
+                    <p style="font-size:10px;color:#666;">墙上刻字仍清晰可见。</p>
+                    <p style="font-size:10px;color:#999;margin-top:8px;">门从里面开着。</p>
+                    <div style="margin-top:15px;">
+                        <button onclick="endGame()" style="padding:6px 20px;background:#333;color:#ccc;border:1px solid #555;cursor:pointer;">继续</button>
+                    </div>
+                </div>
+            `;
+        }
+        function endGame() {
+            const content = document.getElementById('dynamic-content');
+            content.innerHTML = `<div style="text-align:center;padding:60px 20px;"><h2>你拨打的电话无人应答。</h2><p style="font-size:12px;color:#666;margin-top:20px;">—— 游戏结束 ——</p><p style="font-size:10px;color:#999;margin-top:30px;">感谢游玩《无人应答》</p><button onclick="goToView('home')" style="margin-top:20px;">返回首页</button></div>`;
+        }
+        function renderStatusFile(content) {
+            content.innerHTML =
+                `<div class="content-card"><h2>张鹏 · 状态记录</h2><div class="document-box">【张鹏 · 状态记录】
+
+文件编号：116-07-STATUS
+最后更新：2014年3月17日 22:13:08
+
+【结论】
+离开。非失踪。非转移。非死亡。
+门从里面开的。
+
+END</div><div style="margin-top:8px;"><span class="header-link" onclick="goToView('admin')">&larr; 返回后台</span></div></div>`;
+        }
+        function doSearch(context) {
+            let inputId = '';
+            if (context === 'home') inputId = 'home-search-input';
+            else if (context === 'schedule') inputId = 'schedule-search-input';
+            else if (context === 'messages') inputId = 'message-search-input';
+            else if (context === 'admin') inputId = 'admin-search-input';
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const keyword = input.value.trim();
+            if (!keyword) return;
+            if (keyword === '张默') { triggerBlackout();
+                input.value = '';
+                return; }
+            if (context === 'admin' && photoTriggerMap[keyword] !== undefined) {
+                state.zhangpengPhotoLevel = photoTriggerMap[keyword];
+                const container = document.querySelector('.zhangpeng-photo-container');
+                if (container) {
+                    const url = state.zhangpengPhotos[state.zhangpengPhotoLevel];
+                    container.className = 'zhangpeng-photo-container';
+                    if (url) { container.innerHTML = `<img src="${url}" alt="张鹏证件照">`; } else { container.innerHTML =
+                            `<span style="font-size:10px;color:#999;">[张鹏照片<br>等级${state.zhangpengPhotoLevel}未提供]</span>`; }
+                }
+                input.value = '';
+                return;
+            }
+            handleSearchResult(keyword, context);
+            input.value = '';
+        }
+        function handleSearchResult(keyword, context) {
+            const content = document.getElementById('dynamic-content');
+            const kw = keyword.toLowerCase().trim();
+            if (context === 'home') {
+                if (kw === '116' || kw === '首页') { renderHome(content); return; }
+                if (kw === '排班表' || kw === '值班表') { goToView('schedule'); return; }
+                if (kw === '留言板') { goToView('messages'); return; }
+                if (kw === '张鹏') { showNoResult(content, '张鹏', true); return; }
+                if (kw === '爸爸') { showDocInContent(content, '录音文件 #2000-047',
+                        '拨打时间：2000年6月12日 14:32\n通话时长：00:00:47\n\n—— 无人应答 ——'); return; }
+                if (kw === '小默') { showDocInContent(content, '留言 #116-07',
+                        '发送时间：2009年3月8日 23:55\n\n"小默，如果你在找这个，你赢了。"'); return; }
+                showNoResult(content, keyword);
+                return;
+            }
+            if (context === 'schedule') {
+                if (kw === '11607') {
+                    content.innerHTML =
+                        `<div class="content-card"><h2>张鹏个人信息</h2>${zhangpengPhotoHTML(0)}<table class="data-table"><tr><th>工号</th><td>11607</td></tr><tr><th>姓名</th><td>张鹏</td></tr><tr><th>入职日期</th><td>2003年1月15日</td></tr><tr><th>状态</th><td style="color:#cc0000;">已离职</td></tr></table><div style="margin-top:8px;"><span class="header-link" onclick="goToView('schedule')">&larr; 返回</span></div></div>`;
+                    return;
+                }
+                if (kw === '张鹏') { showNoResult(content, '张鹏', true); return; }
+                if (kw === '3月8日' || kw === '2009年3月8日') {
+                    content.innerHTML =
+                        `<div class="content-card"><h2>3月8日排班详情</h2><p><strong>早班：</strong>张鹏（11607）</p><p><strong>晚班：</strong>张鹏（11607）</p><p><strong>备注：</strong>张鹏连续值班。16:00到岗，23:57离开未打卡。</p><div style="margin-top:8px;"><span class="header-link" onclick="goToView('schedule')">&larr; 返回</span></div></div>`;
+                    return;
+                }
+                if (kw === '3月9日' || kw === '2009年3月9日') {
+                    content.innerHTML =
+                        `<div class="content-card"><h2>3月9日排班详情</h2><p><strong>早班：</strong>张鹏（11607）— 未打卡</p><p><strong>晚班：</strong>待定</p><p><strong>备注：</strong>张鹏未到岗。未请假。手机关机。</p><div style="margin-top:8px;"><span class="header-link" onclick="goToView('schedule')">&larr; 返回</span></div></div>`;
+                    return;
+                }
+                showNoResult(content, keyword);
+                return;
+            }
+            if (context === 'messages') {
+                if (kw === '47') {
+                    content.innerHTML = `
+                        <div class="content-card">
+                            <div class="message-detail-box">
+                                <div class="md-header">📋 留言详情</div>
+                                <div class="md-body">
+                                    <div class="md-row"><span class="md-label">留言编号：</span>#47</div>
+                                    <div class="md-row"><span class="md-label">留言时间：</span>2009年3月8日 23:50</div>
+                                    <div class="md-row"><span class="md-label">留言人：</span>匿名</div>
+                                    <div class="md-row"><span class="md-label">来电号码：</span>****（已隐藏）</div>
+                                    <div class="md-row"><span class="md-label">接听状态：</span><span style="color:#cc0000;">未接听</span></div>
+                                    <div class="md-divider"></div>
+                                    <div class="md-content">"张鹏，你还在吗？
+
+ 你答应过会回我电话的。
+ 你说过不管多晚，只要我打过来你都会接。
+
+ 我打了。
+ 你没接。
+
+ 2009年3月8日 23:50"</div>
+                                    <div class="md-system-note">系统备注：该留言发出时，目标接线员（116-07）处于在线状态，但未响应接听。原因未知。</div>
+                                </div>
+                                <div class="md-footer"><span class="header-link" onclick="goToView('messages')">[返回留言板]</span></div>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+                if (kw === '张鹏') {
+                    content.innerHTML =
+                        `<div class="content-card"><h2>搜索结果</h2><p style="font-size:11px;">找到3条包含"张鹏"的留言：</p><p style="font-size:11px;">#23 | 2007-05-12 | 匿名 | 接线员张鹏的声音很好听。</p><p style="font-size:11px;">#39 | 2008-12-20 | 匿名 | 张鹏接线员，谢谢你帮了我。</p><p style="font-size:11px;">#47 | 2009-03-08 | 匿名 | 张鹏，你还在吗？你答应过会回我电话的。</p><div style="margin-top:8px;"><span class="header-link" onclick="goToView('messages')">&larr; 返回</span></div></div>`;
+                    return;
+                }
+                if (kw === '2009年3月8日') {
+                    content.innerHTML =
+                        `<div class="content-card"><h2>2009年3月8日所有留言</h2><p style="font-size:11px;">#46 | 今天116没人接。怎么回事？</p><p style="font-size:11px;">#47 | 张鹏，你还在吗？你答应过会回我电话的。</p><div style="margin-top:8px;"><span class="header-link" onclick="goToView('messages')">&larr; 返回</span></div></div>`;
+                    return;
+                }
+                showNoResult(content, keyword);
+                return;
+            }
+            if (context === 'admin') {
+                if (kw === '授权' || kw === '授权码') { showDocInContent(content, '授权码规则',
+                        '二级授权码 = 协议编号末三位 + 工号后两位 + 验证码第二位和第四位\n\n协议编号：EAP-2003-001 → 001\n工号：11607 → 07\n验证码：4820 → 8和0 → 80\n\n二级授权码：0010780'); return; }
+                if (kw === '协议' || kw === 'eap' || kw === '回声累积协议') { showDocInContent(content, '回声累积协议摘要',
+                        '协议名称：回声累积协议\n协议编号：EAP-2003-001\n部署日期：2003年1月15日'); return; }
+                if (kw === '日志') { showLogFile(); return; }
+                if (kw === '20090308') { showLogFile(); return; }
+                if (kw === 'status' || kw === '张鹏状态' || kw === '116-07') { renderStatusFile(content); return; }
+                if (kw === '隔音间' || kw === '机房') { if (state.hasUnlockedServerRoom) { goToView('room'); } else { showDocInContent(
+                            content, '机房管理', '需要二级授权码。'); } return; }
+                if (kw === '声音') { showDocInContent(content, '为什么张鹏开口是别人的声音', '他的声带本身没有问题。但他没办法只发出"自己的"声音了。'); return; }
+                if (kw === '接线员') { showOtherOperators(); return; }
+                if (kw === '0010780') { verifyAuthCode(); return; }
+                if (kw === '张鹏，有人找你') { content.innerHTML =
+                        `<div class="content-card"><h2>系统消息</h2><p style="font-size:12px;color:#cc0000;">这条消息是张鹏留给你的。他知道你会来。</p><div style="margin-top:8px;"><span class="header-link" onclick="goToView('admin')">&larr; 返回后台</span></div></div>`; return; }
+                showNoResult(content, keyword);
+                return;
+            }
+            showNoResult(content, keyword);
+        }
+        function showNoResult(content, keyword, hidden = false) {
+            if (hidden) { content.innerHTML =
+                    `<div class="content-card"><div style="text-align:center;padding:20px;"><strong>未找到相关结果</strong><br><span style="font-size:11px;color:#999;">（"${keyword}"——该记录不存在或被系统屏蔽）</span></div><div style="margin-top:8px;"><span class="header-link" onclick="goToView('${state.currentView}')">&larr; 返回</span></div></div>`; } else { content
+                    .innerHTML =
+                    `<div class="content-card"><div style="text-align:center;padding:20px;"><strong>未找到与"${keyword}"相关的结果</strong></div><div style="margin-top:8px;"><span class="header-link" onclick="goToView('${state.currentView}')">&larr; 返回</span></div></div>`; }
+        }
+        function showDocInContent(content, title, text) {
+            content.innerHTML =
+                `<div class="content-card"><h2>${title}</h2><div class="document-box">${text.replace(/\n/g,'<br>')}</div><div style="margin-top:8px;"><span class="header-link" onclick="goToView('${state.currentView}')">&larr; 返回</span></div></div>`;
+        }
+        function dial116() {
+            if (state.callCooldown) return;
+            const btn = document.getElementById('call-btn');
+            const feedback = document.getElementById('call-feedback');
+            if (!btn || !feedback) return;
+            state.callCooldown = true;
+            btn.disabled = true;
+            const index = state.callCount;
+            if (index < callFeedbacks.length) { feedback.textContent = callFeedbacks[index];
+                state.callCount++; } else if (index < callFeedbacks.length + extraCallFeedbacks.length) { feedback
+                    .textContent = extraCallFeedbacks[index - callFeedbacks.length];
+                state.callCount++; } else { feedback.textContent = '无人应答。'; }
+            setTimeout(() => { state.callCooldown = false;
+                btn.disabled = false; }, 5000);
+        }
+        function triggerBlackout() {
+            if (state.blackoutActive) return;
+            state.blackoutActive = true;
+            const overlay = document.getElementById('blackout-overlay');
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => { overlay.classList.remove('active');
+                document.body.style.overflow = '';
+                state.blackoutActive = false;
+                goToView('home'); }, 2500);
+        }
+        setInterval(() => { state.visitCounter++; const c = document.getElementById('visit-counter'); if (c) c.textContent = String(
+                state.visitCounter).padStart(6, '0'); }, 30000);
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('wayback-view').classList.remove('hidden');
+            document.getElementById('game-body').classList.remove('active');
+            document.getElementById('game-header').style.display = 'none';
+            selectWaybackSnapshot(document.querySelector('.wm-snapshot-item'), '2009-03-08');
+        });
+        window.goToView = goToView;
+        window.enterGame = enterGame;
+        window.selectWaybackSnapshot = selectWaybackSnapshot;
+        window.doSearch = doSearch;
+        window.dial116 = dial116;
+        window.attemptLogin = attemptLogin;
+        window.verifyAuthCode = verifyAuthCode;
+        window.showLogFile = showLogFile;
+        window.showOtherOperators = showOtherOperators;
+        window.confirmEnterCell = confirmEnterCell;
+        window.endGame = endGame;
+        window.triggerBlackout = triggerBlackout;
+        window.toggleNotice = toggleNotice;
+    </script>
+</body>
+</html>
